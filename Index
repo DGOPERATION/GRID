@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Coaching — Dolce & Gabbana</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Montserrat:wght@300;400;500;600&display=swap') screen;
+
+  :root {
+    --gold: #b8963e;
+    --gold-light: #d4af6a;
+    --gold-pale: #f5edd8;
+    --black: #0d0d0d;
+    --mid: #3a3a3a;
+    --light: #f8f5f0;
+    --border: #d9cfc0;
+    --success: #4a7c59;
+    --danger: #8b4513;
+    --bar-height: 72px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--light);
+    color: var(--black);
+    min-height: 100vh;
+    padding-bottom: calc(var(--bar-height) + env(safe-area-inset-bottom));
+  }
+
+  /* HEADER */
+  header {
+    background: var(--black);
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: 4px;
+    color: white;
+    text-transform: uppercase;
+  }
+  .logo span { color: var(--gold); }
+
+  .header-tag {
+    font-size: 8px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    border: 1px solid var(--gold);
+    padding: 3px 8px;
+  }
+
+  /* MAIN */
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 16px 16px;
+  }
+
+  .page-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 38px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+
+  .page-subtitle {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 28px;
+  }
+
+  /* META */
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .field-group { display: flex; flex-direction: column; gap: 5px; }
+
+  .field-group label {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+
+  .field-group input {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    color: var(--black);
+    padding: 8px 0;
+    outline: none;
+    width: 100%;
+    transition: border-color .2s;
+  }
+  .field-group input:focus { border-bottom-color: var(--gold); }
+
+  /* SECTION */
+  .section {
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    background: var(--black);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background .35s ease;
+  }
+
+  .section-header.score-good    { background: #2d6a3f; }
+  .section-header.score-mid     { background: #7a5c1a; }
+  .section-header.score-bad     { background: #7a1e1e; }
+
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    color: white;
+    text-transform: uppercase;
+  }
+
+  .score-badge {
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: 1px;
+    background: rgba(255,255,255,0.15);
+    padding: 2px 8px;
+    border-radius: 20px;
+    min-width: 46px;
+    text-align: center;
+    transition: background .2s;
+  }
+
+  /* GLOBAL SCORE BANNER */
+  .global-score-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--black);
+    border-radius: 2px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    border: 1px solid #2a2a2a;
+    gap: 16px;
+    transition: background .35s;
+  }
+
+  .global-score-banner.score-good { background: #2d6a3f; border-color: #2d6a3f; }
+  .global-score-banner.score-mid  { background: #7a5c1a; border-color: #7a5c1a; }
+  .global-score-banner.score-bad  { background: #7a1e1e; border-color: #7a1e1e; }
+
+  .global-score-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .global-score-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    font-weight: 300;
+    color: white;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+
+  .global-score-detail {
+    font-size: 9px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 1px;
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  /* CRITERIA ROW */
+  .criteria-row {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--gold-pale);
+  }
+  .criteria-row:last-child { border-bottom: none; }
+
+  .criteria-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .criteria-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--mid);
+    flex: 1;
+  }
+
+  /* EMOJI RATING */
+  .rating-group { display: flex; gap: 0; }
+  .rating-group input[type="radio"] { display: none; }
+
+  .rating-group label {
+    font-size: 26px;
+    cursor: pointer;
+    opacity: 0.2;
+    transition: opacity .15s, transform .15s;
+    padding: 4px 6px;
+    line-height: 1;
+    display: block;
+  }
+  .rating-group label:hover { opacity: 0.65; }
+  .rating-group input[type="radio"]:checked + label {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+
+  /* INLINE COMMENT */
+  .criteria-comment {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    border: none;
+    border-bottom: 1px solid #ece7dc;
+    background: transparent;
+    color: var(--mid);
+    padding: 4px 0;
+    width: 100%;
+    outline: none;
+  }
+  .criteria-comment:focus { border-bottom-color: var(--gold); }
+  .criteria-comment::placeholder { color: #c0b8a8; }
+
+  /* SECTION NOTE */
+  .section-note-row {
+    background: var(--gold-pale);
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .section-note-label {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+
+  .section-note-row textarea {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    border: none;
+    background: transparent;
+    color: var(--mid);
+    width: 100%;
+    resize: none;
+    height: 48px;
+    outline: none;
+    line-height: 1.6;
+  }
+
+  /* DIVIDER */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0 16px;
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* BILAN */
+  .bilan-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .bilan-col { background: white; }
+  .bilan-col:first-child { border-right: 1px solid var(--border); }
+
+  .bilan-col-header {
+    padding: 10px 14px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .bilan-col:first-child .bilan-col-header { color: var(--success); background: #f0f7f2; }
+  .bilan-col:last-child  .bilan-col-header { color: var(--danger);  background: #fdf5ee; }
+
+  .bilan-col textarea {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    border: none;
+    padding: 12px 14px;
+    resize: none;
+    height: 110px;
+    outline: none;
+    width: 100%;
+    color: var(--mid);
+    background: white;
+    line-height: 1.7;
+  }
+
+  /* FINAL COMMENT */
+  .final-block {
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    background: white;
+    margin-bottom: 16px;
+  }
+
+  .final-block-header {
+    background: var(--mid);
+    padding: 10px 16px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    color: white;
+    text-transform: uppercase;
+  }
+
+  .final-block textarea {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    border: none;
+    padding: 14px 16px;
+    resize: none;
+    height: 100px;
+    outline: none;
+    width: 100%;
+    color: var(--mid);
+    line-height: 1.8;
+  }
+
+  /* STICKY ACTION BAR */
+  .action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--black);
+    display: flex;
+    align-items: stretch;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-top: 1px solid #252525;
+  }
+
+  .action-bar button {
+    flex: 1;
+    font-family: 'Montserrat', sans-serif;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: var(--bar-height);
+    transition: background .15s;
+    background: transparent;
+  }
+  .action-bar button:active { background: #1c1c1c; }
+
+  .btn-icon  { font-size: 20px; line-height: 1; }
+  .btn-label { font-size: 8px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+  .btn-divider { width: 1px; background: #222; flex-shrink: 0; margin: 14px 0; }
+
+  .btn-reset-action .btn-icon,
+  .btn-reset-action .btn-label { color: #666; }
+
+  .btn-excel .btn-icon  { color: #6abf69; }
+  .btn-excel .btn-label { color: #6abf69; }
+
+  .btn-pdf .btn-icon  { color: var(--gold-light); }
+  .btn-pdf .btn-label { color: var(--gold-light); }
+
+  .btn-save .btn-icon  { color: white; }
+  .btn-save .btn-label { color: white; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: calc(var(--bar-height) + 12px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: var(--mid);
+    color: var(--gold-light);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 10px 22px;
+    opacity: 0;
+    transition: all .32s cubic-bezier(.16,1,.3,1);
+    pointer-events: none;
+    z-index: 200;
+    white-space: nowrap;
+    border-radius: 2px;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* MOBILE */
+  @media (max-width: 480px) {
+    .meta-grid { grid-template-columns: 1fr; }
+    .bilan-grid { grid-template-columns: 1fr; }
+    .bilan-col:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+    .header-tag { display: none; }
+  }
+
+  /* PRINT */
+  @media print {
+    @page { margin: 14mm; size: A4; }
+    body { padding-bottom: 0; background: white; }
+    header { background: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; position: static; padding: 10px 16px; }
+    .logo { font-size: 15px; color: white !important; }
+    .logo span { color: #b8963e !important; }
+    .header-tag { display: none; }
+    main { padding: 14px 0 0; }
+    .page-title { font-size: 26px; }
+    .section { margin-bottom: 10px; break-inside: avoid; }
+    .section-header { background: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .section-title { color: white !important; }
+    .score-badge { color: #d4af6a !important; }
+    .section-note-row { background: #f5edd8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .bilan-col:first-child .bilan-col-header { background: #f0f7f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .bilan-col:last-child  .bilan-col-header { background: #fdf5ee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .final-block-header { background: #3a3a3a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: white !important; }
+    .action-bar, .toast { display: none !important; }
+    .criteria-comment { border-bottom: 1px solid #ccc; }
+    .bilan-col textarea, .final-block textarea, .section-note-row textarea { height: auto; min-height: 55px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Dolce <span>&</span> Gabbana</div>
+  <div class="header-tag">Retail Campus · Coaching</div>
+</header>
+
+<main>
+  <div class="page-title">Coaching</div>
+  <div class="page-subtitle">Évaluation vendeur</div>
+
+  <div class="meta-grid">
+    <div class="field-group">
+      <label>Boutique</label>
+      <input type="text" id="boutique" placeholder="Paris Montaigne…" list="boutiques">
+      <datalist id="boutiques">
+        <option value="Paris Montaigne">
+        <option value="Paris Faubourg">
+        <option value="Cannes">
+        <option value="Saint-Tropez">
+        <option value="Nice">
+        <option value="Monte-Carlo">
+        <option value="Monte-Carlo Kids">
+        <option value="Galeries Lafayette">
+        <option value="Cap Ferrat">
+      </datalist>
+    </div>
+    <div class="field-group">
+      <label>Date</label>
+      <input type="date" id="date">
+    </div>
+    <div class="field-group">
+      <label>Vendeur coaché</label>
+      <input type="text" id="advisor" placeholder="Prénom Nom">
+    </div>
+    <div class="field-group">
+      <label>Observateur / Manager</label>
+      <input type="text" id="manager" placeholder="Prénom Nom">
+    </div>
+  </div>
+
+  <div id="sections-container"></div>
+
+  <div class="global-score-banner" id="global-score-banner">
+    <div>
+      <div class="global-score-label">Score global</div>
+      <div class="global-score-value" id="global-score-value">—</div>
+    </div>
+    <div class="global-score-detail" id="global-score-detail">Aucun critère noté</div>
+  </div>
+
+  <div class="divider">Bilan de session</div>
+
+  <div class="bilan-grid">
+    <div class="bilan-col">
+      <div class="bilan-col-header">✦ J'ai apprécié</div>
+      <textarea id="appreciated" placeholder="Points forts observés…"></textarea>
+    </div>
+    <div class="bilan-col">
+      <div class="bilan-col-header">◈ À améliorer</div>
+      <textarea id="improve" placeholder="Axes de progression…"></textarea>
+    </div>
+  </div>
+
+  <div class="final-block">
+    <div class="final-block-header">Commentaire final du manager</div>
+    <textarea id="final-comment" placeholder="Synthèse globale, engagement du vendeur, prochaine étape convenue…"></textarea>
+  </div>
+</main>
+
+<div class="action-bar">
+  <button class="btn-reset-action" onclick="resetForm()">
+    <span class="btn-icon">↺</span>
+    <span class="btn-label">Reset</span>
+  </button>
+  <div class="btn-divider"></div>
+  <button class="btn-excel" onclick="exportExcel()">
+    <span class="btn-icon">📊</span>
+    <span class="btn-label">Excel</span>
+  </button>
+  <div class="btn-divider"></div>
+  <button class="btn-pdf" onclick="exportPDF()">
+    <span class="btn-icon">📄</span>
+    <span class="btn-label">PDF</span>
+  </button>
+  <div class="btn-divider"></div>
+  <button class="btn-save" onclick="submitForm()">
+    <span class="btn-icon">💾</span>
+    <span class="btn-label">Enregistrer</span>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SECTIONS = [
+  { id: 'welcome',      title: 'Welcome',       criteria: ['Smile', 'Grooming', 'Body language'] },
+  { id: 'engage',       title: 'Engage',         criteria: ['Approach client', 'Storytelling', 'Discover Client needs / desires'] },
+  { id: 'presentation', title: 'Presentation',   criteria: ['Features, Advantages, Benefits', 'Invite to try'] },
+  { id: 'fitting',      title: 'Fitting',         criteria: ['Encourage (upsell)', 'Cross selling'] },
+  { id: 'discover',     title: 'Discover Client', criteria: ['CRM', 'Infos Client Overview', 'When the client is coming back'] }
+];
+
+const EMOJIS = [
+  { value: 4, emoji: '😊', label: 'Excellent' },
+  { value: 3, emoji: '🙂', label: 'Bien' },
+  { value: 2, emoji: '😐', label: 'À améliorer' },
+  { value: 1, emoji: '😕', label: 'Insuffisant' }
+];
+
+const RATING_LABELS = { 4: 'Excellent', 3: 'Bien', 2: 'À améliorer', 1: 'Insuffisant' };
+
+function buildSections() {
+  const container = document.getElementById('sections-container');
+  SECTIONS.forEach(section => {
+    const el = document.createElement('div');
+    el.className = 'section';
+    el.innerHTML = `
+      <div class="section-header">
+        <div class="section-title">${section.title}</div>
+        <div class="score-badge" id="score-${section.id}"></div>
+      </div>
+      <div class="section-body">
+        ${section.criteria.map((c, i) => `
+          <div class="criteria-row">
+            <div class="criteria-top">
+              <div class="criteria-name">${c}</div>
+              <div class="rating-group">
+                ${EMOJIS.map(e => `
+                  <input type="radio" name="${section.id}_${i}" id="${section.id}_${i}_${e.value}" value="${e.value}" onchange="updateScore('${section.id}')">
+                  <label for="${section.id}_${i}_${e.value}" title="${e.label}">${e.emoji}</label>
+                `).join('')}
+              </div>
+            </div>
+            <input class="criteria-comment" type="text" placeholder="Commentaire…" id="comment-${section.id}-${i}">
+          </div>
+        `).join('')}
+        <div class="section-note-row">
+          <div class="section-note-label">Note générale</div>
+          <textarea placeholder="Observations sur cette étape…" id="note-${section.id}"></textarea>
+        </div>
+      </div>
+    `;
+    container.appendChild(el);
+  });
+}
+
+function getSectionScore(sectionId) {
+  const section = SECTIONS.find(s => s.id === sectionId);
+  let total = 0, count = 0;
+  section.criteria.forEach((_, i) => {
+    const checked = document.querySelector(`input[name="${sectionId}_${i}"]:checked`);
+    if (checked) { total += parseInt(checked.value); count++; }
+  });
+  return count > 0 ? { avg: total / count, pct: Math.round((total / (count * 4)) * 100), count } : null;
+}
+
+function getColorClass(pct) {
+  if (pct >= 70) return 'score-good';
+  if (pct >= 40) return 'score-mid';
+  return 'score-bad';
+}
+
+function updateScore(sectionId) {
+  const result = getSectionScore(sectionId);
+  const badge  = document.getElementById(`score-${sectionId}`);
+  const header = badge.closest('.section-header');
+
+  // Reset color classes
+  header.classList.remove('score-good', 'score-mid', 'score-bad');
+
+  if (result) {
+    badge.textContent = result.pct + '%';
+    header.classList.add(getColorClass(result.pct));
+  } else {
+    badge.textContent = '';
+  }
+
+  updateGlobalScore();
+}
+
+function updateGlobalScore() {
+  let totalPct = 0, sectionCount = 0, criteriaCount = 0, criteriaTotal = 0;
+
+  SECTIONS.forEach(s => {
+    const r = getSectionScore(s.id);
+    if (r) {
+      totalPct += r.pct;
+      criteriaCount += r.count;
+      criteriaTotal += r.count * 4;
+      sectionCount++;
+    }
+  });
+
+  const banner  = document.getElementById('global-score-banner');
+  const valEl   = document.getElementById('global-score-value');
+  const detailEl = document.getElementById('global-score-detail');
+
+  banner.classList.remove('score-good', 'score-mid', 'score-bad');
+
+  if (sectionCount === 0) {
+    valEl.textContent   = '—';
+    detailEl.textContent = 'Aucun critère noté';
+    return;
+  }
+
+  const globalPct = Math.round(totalPct / sectionCount);
+  valEl.textContent = globalPct + '%';
+
+  const label = globalPct >= 70 ? 'Bon niveau' : globalPct >= 40 ? 'En progression' : 'À travailler';
+  detailEl.innerHTML = `${criteriaCount} critère(s) noté(s)<br>${label}`;
+  banner.classList.add(getColorClass(globalPct));
+}
+
+function getFormData() {
+  const data = {
+    boutique:     document.getElementById('boutique').value,
+    date:         document.getElementById('date').value,
+    advisor:      document.getElementById('advisor').value,
+    manager:      document.getElementById('manager').value,
+    sections:     {},
+    appreciated:  document.getElementById('appreciated').value,
+    improve:      document.getElementById('improve').value,
+    finalComment: document.getElementById('final-comment').value
+  };
+  SECTIONS.forEach(section => {
+    data.sections[section.id] = {
+      criteria: section.criteria.map((c, i) => {
+        const checked = document.querySelector(`input[name="${section.id}_${i}"]:checked`);
+        return { name: c, rating: checked ? parseInt(checked.value) : null, comment: document.getElementById(`comment-${section.id}-${i}`).value };
+      }),
+      note: document.getElementById(`note-${section.id}`).value
+    };
+  });
+  return data;
+}
+
+/* ══════════════════════════════════════
+   EXPORT EXCEL
+══════════════════════════════════════ */
+function exportExcel() {
+  const d = getFormData();
+  const wb = XLSX.utils.book_new();
+
+  // ── Feuille 1 : Détail ──────────────────────────────────────
+  const rows1 = [];
+
+  // Titre
+  rows1.push(['DOLCE & GABBANA — FICHE COACHING', '', '', '', '']);
+  rows1.push(['']);
+  rows1.push(['Boutique', d.boutique, '', 'Date', d.date]);
+  rows1.push(['Vendeur coaché', d.advisor, '', 'Observateur / Manager', d.manager]);
+  rows1.push(['']);
+
+  // En-tête tableau
+  rows1.push(['SECTION', 'CRITÈRE', 'NOTE (/4)', 'NIVEAU', 'COMMENTAIRE']);
+
+  SECTIONS.forEach(section => {
+    const sd = d.sections[section.id];
+    sd.criteria.forEach((c, idx) => {
+      rows1.push([
+        idx === 0 ? section.title : '',
+        c.name,
+        c.rating !== null ? c.rating : '',
+        c.rating !== null ? RATING_LABELS[c.rating] : '',
+        c.comment
+      ]);
+    });
+    if (sd.note) {
+      rows1.push(['', '→ ' + sd.note, '', '', '']);
+    }
+    rows1.push(['', '', '', '', '']);
+  });
+
+  // Bilan
+  rows1.push(['BILAN', '', '', '', '']);
+  rows1.push(["J'ai apprécié", d.appreciated, '', '', '']);
+  rows1.push(['À améliorer', d.improve, '', '', '']);
+  rows1.push(['']);
+  rows1.push(['Commentaire final', d.finalComment, '', '', '']);
+
+  const ws1 = XLSX.utils.aoa_to_sheet(rows1);
+  ws1['!cols'] = [{ wch: 22 }, { wch: 32 }, { wch: 10 }, { wch: 16 }, { wch: 52 }];
+
+  // Fusions cellules pour le titre
+  ws1['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }   // Titre sur toute la ligne
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws1, 'Détail coaching');
+
+  // ── Feuille 2 : Scores ──────────────────────────────────────
+  const rows2 = [];
+  rows2.push(['SCORES PAR SECTION', '', '', '']);
+  rows2.push(['']);
+  rows2.push(['Vendeur', d.advisor, 'Boutique', d.boutique]);
+  rows2.push(['Date', d.date, '', '']);
+  rows2.push(['']);
+  rows2.push(['Section', 'Moy. (/4)', 'Score %', 'Critères notés / Total']);
+
+  let globalTotal = 0, globalCount = 0;
+
+  SECTIONS.forEach(section => {
+    const sd = d.sections[section.id];
+    const rated = sd.criteria.filter(c => c.rating !== null);
+    const avg = rated.length ? rated.reduce((s, c) => s + c.rating, 0) / rated.length : null;
+    const pct = avg !== null ? Math.round((avg / 4) * 100) : null;
+    if (avg !== null) { globalTotal += avg; globalCount++; }
+    rows2.push([
+      section.title,
+      avg !== null ? parseFloat(avg.toFixed(2)) : 'N/A',
+      pct !== null ? pct + '%' : 'N/A',
+      `${rated.length} / ${sd.criteria.length}`
+    ]);
+  });
+
+  rows2.push(['']);
+  const globalAvg = globalCount > 0 ? globalTotal / globalCount : null;
+  rows2.push([
+    'SCORE GLOBAL',
+    globalAvg !== null ? parseFloat(globalAvg.toFixed(2)) : 'N/A',
+    globalAvg !== null ? Math.round((globalAvg / 4) * 100) + '%' : 'N/A',
+    `${globalCount} section(s) notée(s)`
+  ]);
+
+  const ws2 = XLSX.utils.aoa_to_sheet(rows2);
+  ws2['!cols'] = [{ wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 22 }];
+
+  XLSX.utils.book_append_sheet(wb, ws2, 'Scores');
+
+  // Nom fichier
+  const adv  = (d.advisor  || 'Vendeur').replace(/\s+/g, '_');
+  const bout = (d.boutique || 'DG').replace(/\s+/g, '_');
+  const dt   = d.date || new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `Coaching_${adv}_${bout}_${dt}.xlsx`);
+  showToast('Export Excel généré');
+}
+
+/* ══════════════════════════════════════
+   EXPORT PDF
+══════════════════════════════════════ */
+function exportPDF() {
+  const d = getFormData();
+  const adv  = (d.advisor  || 'Vendeur').replace(/\s+/g, '_');
+  const bout = (d.boutique || 'DG').replace(/\s+/g, '_');
+  const dt   = d.date || new Date().toISOString().split('T')[0];
+  const prev = document.title;
+  document.title = `Coaching_${adv}_${bout}_${dt}`;
+  window.print();
+  document.title = prev;
+}
+
+/* ══════════════════════════════════════
+   SAVE
+══════════════════════════════════════ */
+function submitForm() {
+  const data = getFormData();
+  try {
+    const existing = JSON.parse(localStorage.getItem('dg_coachings') || '[]');
+    existing.push({ key: `coaching_${Date.now()}`, ...data });
+    localStorage.setItem('dg_coachings', JSON.stringify(existing));
+  } catch(e) {}
+  showToast('Coaching enregistré');
+}
+
+/* ══════════════════════════════════════
+   RESET
+══════════════════════════════════════ */
+function resetForm() {
+  if (!confirm('Réinitialiser le formulaire ?')) return;
+  ['boutique','advisor','manager','appreciated','improve','final-comment']
+    .forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('date').value = new Date().toISOString().split('T')[0];
+  SECTIONS.forEach(section => {
+    section.criteria.forEach((_, i) => {
+      document.querySelectorAll(`input[name="${section.id}_${i}"]`).forEach(r => r.checked = false);
+      document.getElementById(`comment-${section.id}-${i}`).value = '';
+    });
+    document.getElementById(`note-${section.id}`).value = '';
+    document.getElementById(`score-${section.id}`).textContent = '';
+    const header = document.getElementById(`score-${section.id}`).closest('.section-header');
+    header.classList.remove('score-good', 'score-mid', 'score-bad');
+  });
+  const banner = document.getElementById('global-score-banner');
+  banner.classList.remove('score-good', 'score-mid', 'score-bad');
+  document.getElementById('global-score-value').textContent = '—';
+  document.getElementById('global-score-detail').textContent = 'Aucun critère noté';
+}
+
+/* ══════════════════════════════════════
+   TOAST
+══════════════════════════════════════ */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// INIT
+document.getElementById('date').value = new Date().toISOString().split('T')[0];
+buildSections();
+</script>
+</body>
+</html>
