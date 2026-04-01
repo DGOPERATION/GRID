@@ -553,6 +553,10 @@
       <label>Observateur / Manager</label>
       <input type="text" id="manager" placeholder="Prénom Nom">
     </div>
+    <div class="field-group">
+      <label>Nom du client</label>
+      <input type="text" id="client-name" placeholder="Initiales ou nom">
+    </div>
   </div>
 
   <div id="sections-container"></div>
@@ -730,6 +734,7 @@ function getFormData() {
     date:         document.getElementById('date').value,
     advisor:      document.getElementById('advisor').value,
     manager:      document.getElementById('manager').value,
+    clientName:   document.getElementById('client-name').value,
     sections:     {},
     appreciated:  document.getElementById('appreciated').value,
     improve:      document.getElementById('improve').value,
@@ -873,6 +878,16 @@ function exportExcel() {
     cell('', { fill: C.white, border: {} }),
     cell('OBSERVATEUR', infoLabelStyle),
     cell(d.manager || '—', infoStyle),
+  ]);
+  ws1['!rows'][r] = { hpt: 20 };
+  r++;
+
+  setRow(ws1, r, [
+    cell('NOM DU CLIENT', infoLabelStyle),
+    cell(d.clientName || '—', infoStyle),
+    cell('', { fill: C.white, border: {} }),
+    cell('', { fill: C.white, border: {} }),
+    cell('', { fill: C.white, border: {} }),
   ]);
   ws1['!rows'][r] = { hpt: 20 };
   r++;
@@ -1022,7 +1037,7 @@ function exportExcel() {
   ws2['!rows'] = [{ hpt: 32 }];
   r2++;
 
-  setRow2(r2, [ cell(`${d.advisor || '—'}  ·  ${d.boutique || '—'}  ·  ${d.date || '—'}`, { font: { sz: 10, italic: true, color: C.goldLight }, fill: C.black, border: {} }), null, null, null ]);
+  setRow2(r2, [ cell(`${d.advisor || '—'}  ·  ${d.boutique || '—'}  ·  ${d.date || '—'}  ·  Client : ${d.clientName || '—'}`, { font: { sz: 10, italic: true, color: C.goldLight }, fill: C.black, border: {} }), null, null, null ]);
   merges2.push({ s: { r: r2, c: 0 }, e: { r: r2, c: 3 } });
   ws2['!rows'][r2] = { hpt: 18 };
   r2 += 2;
@@ -1130,7 +1145,7 @@ function submitForm() {
 ══════════════════════════════════════ */
 function resetForm() {
   if (!confirm('Réinitialiser le formulaire ?')) return;
-  ['boutique','advisor','manager','appreciated','improve','final-comment']
+  ['boutique','advisor','manager','client-name','appreciated','improve','final-comment']
     .forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('date').value = new Date().toISOString().split('T')[0];
   SECTIONS.forEach(section => {
