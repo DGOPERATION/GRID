@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Coaching — Dolce & Gabbana</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Montserrat:wght@300;400;500;600&display=swap') screen;
 
@@ -22,6 +22,9 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  /* iOS anti-zoom : font-size minimum 16px sur tous les champs */
+  input, textarea, select { font-size: 16px !important; }
 
   body {
     font-family: 'Montserrat', sans-serif;
@@ -570,11 +573,7 @@
     <span class="btn-icon">📄</span>
     <span class="btn-label">PDF</span>
   </button>
-  <div class="btn-divider"></div>
-  <button class="btn-save" onclick="submitForm()">
-    <span class="btn-icon">💾</span>
-    <span class="btn-label">Enregistrer</span>
-  </button>
+
 </div>
 
 <div class="toast" id="toast"></div>
@@ -723,99 +722,349 @@ function getFormData() {
 }
 
 /* ══════════════════════════════════════
-   EXPORT EXCEL
+   EXPORT EXCEL — styled
 ══════════════════════════════════════ */
 function exportExcel() {
   const d = getFormData();
   const wb = XLSX.utils.book_new();
 
-  // ── Feuille 1 : Détail ──────────────────────────────────────
-  const rows1 = [];
+  // ── Palette ────────────────────────────────────────────
+  const C = {
+    black:      '0D0D0D',
+    gold:       'B8963E',
+    goldLight:  'D4AF6A',
+    goldPale:   'F5EDD8',
+    white:      'FFFFFF',
+    lightBg:    'F8F5F0',
+    borderGray: 'D9CFC0',
+    green:      '2D6A3F',
+    greenLight: 'EAF4EE',
+    amber:      '7A5C1A',
+    amberLight: 'FDF5E0',
+    red:        '7A1E1E',
+    redLight:   'FDEAEA',
+    midGray:    '3A3A3A',
+    textLight:  '888888',
+  };
 
-  // Titre
-  rows1.push(['DOLCE & GABBANA — FICHE COACHING', '', '', '', '']);
-  rows1.push(['']);
-  rows1.push(['Boutique', d.boutique, '', 'Date', d.date]);
-  rows1.push(['Vendeur coaché', d.advisor, '', 'Observateur / Manager', d.manager]);
-  rows1.push(['']);
+  // ── Style helpers ──────────────────────────────────────
+  const font  = (opts = {}) => ({ name: 'Calibri', sz: opts.sz || 11, bold: opts.bold || false, color: { rgb: opts.color || C.black }, italic: opts.italic || false });
+  const fill  = (rgb) => ({ type: 'pattern', patternType: 'solid', fgColor: { rgb } });
+  const border = (color = C.borderGray) => {
+    const s = { style: 'thin', color: { rgb: color } };
+    return { top: s, bottom: s, left: s, right: s };
+  };
+  const borderBottom = (color = C.gold) => ({ bottom: { style: 'medium', color: { rgb: color } } });
+  const align = (h = 'left', v = 'center', wrap = false) => ({ horizontal: h, vertical: v, wrapText: wrap });
 
-  // En-tête tableau
-  rows1.push(['SECTION', 'CRITÈRE', 'NOTE (/4)', 'NIVEAU', 'COMMENTAIRE']);
-
-  SECTIONS.forEach(section => {
-    const sd = d.sections[section.id];
-    sd.criteria.forEach((c, idx) => {
-      rows1.push([
-        idx === 0 ? section.title : '',
-        c.name,
-        c.rating !== null ? c.rating : '',
-        c.rating !== null ? RATING_LABELS[c.rating] : '',
-        c.comment
-      ]);
-    });
-    if (sd.note) {
-      rows1.push(['', '→ ' + sd.note, '', '', '']);
+  const cell = (v, opts = {}) => ({
+    v,
+    t: typeof v === 'number' ? 'n' : 's',
+    s: {
+      font:      font(opts.font || {}),
+      fill:      opts.fill ? fill(opts.fill) : { patternType: 'none' },
+      border:    opts.border !== undefined ? opts.border : {},
+      alignment: opts.align ? align(...(Array.isArray(opts.align) ? opts.align : [opts.align])) : align('left', 'center', true),
     }
-    rows1.push(['', '', '', '', '']);
   });
 
-  // Bilan
-  rows1.push(['BILAN', '', '', '', '']);
-  rows1.push(["J'ai apprécié", d.appreciated, '', '', '']);
-  rows1.push(['À améliorer', d.improve, '', '', '']);
-  rows1.push(['']);
-  rows1.push(['Commentaire final', d.finalComment, '', '', '']);
+  function scoreColor(pct) {
+    if (pct === null) return { bg: C.lightBg, fg: C.textLight };
+    if (pct >= 70)   return { bg: C.greenLight, fg: C.green };
+    if (pct >= 40)   return { bg: C.amberLight, fg: C.amber };
+    return               { bg: C.redLight,   fg: C.red };
+  }
 
-  const ws1 = XLSX.utils.aoa_to_sheet(rows1);
-  ws1['!cols'] = [{ wch: 22 }, { wch: 32 }, { wch: 10 }, { wch: 16 }, { wch: 52 }];
+  function ratingEmoji(r) {
+    return { 4: '😊 Excellent', 3: '🙂 Bien', 2: '😐 À améliorer', 1: '😕 Insuffisant' }[r] || '';
+  }
 
-  // Fusions cellules pour le titre
-  ws1['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }   // Titre sur toute la ligne
-  ];
+  // ════════════════════════════════════════════════════════
+  // FEUILLE 1 : FICHE DÉTAIL
+  // ════════════════════════════════════════════════════════
+  const ws1 = {};
+  const merges1 = [];
+  let r = 0;
 
-  XLSX.utils.book_append_sheet(wb, ws1, 'Détail coaching');
+  function setCell(ws, row, col, cellObj) {
+    const addr = XLSX.utils.encode_cell({ r: row, c: col });
+    ws[addr] = cellObj;
+  }
 
-  // ── Feuille 2 : Scores ──────────────────────────────────────
-  const rows2 = [];
-  rows2.push(['SCORES PAR SECTION', '', '', '']);
-  rows2.push(['']);
-  rows2.push(['Vendeur', d.advisor, 'Boutique', d.boutique]);
-  rows2.push(['Date', d.date, '', '']);
-  rows2.push(['']);
-  rows2.push(['Section', 'Moy. (/4)', 'Score %', 'Critères notés / Total']);
+  function setRow(ws, row, cells) {
+    cells.forEach((c, col) => { if (c !== null) setCell(ws, row, col, c); });
+  }
 
-  let globalTotal = 0, globalCount = 0;
+  // ROW 0 — Titre principal
+  setRow(ws1, r, [
+    cell('DOLCE & GABBANA  ·  FICHE COACHING', {
+      font:  { sz: 16, bold: true, color: C.goldLight },
+      fill:  C.black,
+      align: ['left', 'center'],
+      border: {}
+    }),
+    null, null, null, null
+  ]);
+  merges1.push({ s: { r, c: 0 }, e: { r, c: 4 } });
+  ws1['!rows'] = ws1['!rows'] || [];
+  ws1['!rows'][r] = { hpt: 32 };
+  r++;
 
+  // ROW 1 — Sous-titre
+  setRow(ws1, r, [
+    cell('Retail Campus  —  Évaluation vendeur', {
+      font:  { sz: 10, color: C.goldLight, italic: true },
+      fill:  C.black,
+      align: ['left', 'center'],
+      border: {}
+    }),
+    null, null, null, null
+  ]);
+  merges1.push({ s: { r, c: 0 }, e: { r, c: 4 } });
+  ws1['!rows'][r] = { hpt: 18 };
+  r++;
+
+  // ROW 2 — Vide
+  r++;
+
+  // ROW 3-4 — Infos
+  const infoStyle = { font: { sz: 11 }, fill: C.goldPale, border: border(C.gold), align: ['left', 'center'] };
+  const infoLabelStyle = { font: { sz: 9, bold: true, color: C.gold }, fill: C.goldPale, border: border(C.gold), align: ['left', 'center'] };
+
+  setRow(ws1, r, [
+    cell('BOUTIQUE', infoLabelStyle),
+    cell(d.boutique || '—', infoStyle),
+    cell('', { fill: C.white, border: {} }),
+    cell('DATE', infoLabelStyle),
+    cell(d.date || '—', infoStyle),
+  ]);
+  ws1['!rows'][r] = { hpt: 20 };
+  r++;
+
+  setRow(ws1, r, [
+    cell('VENDEUR COACHÉ', infoLabelStyle),
+    cell(d.advisor || '—', { ...infoStyle, font: { sz: 12, bold: true, color: C.black } }),
+    cell('', { fill: C.white, border: {} }),
+    cell('OBSERVATEUR', infoLabelStyle),
+    cell(d.manager || '—', infoStyle),
+  ]);
+  ws1['!rows'][r] = { hpt: 20 };
+  r++;
+
+  // ROW 5 — Vide
+  r++;
+
+  // ROW 6 — En-têtes colonnes
+  const hdrStyle = { font: { sz: 10, bold: true, color: C.white }, fill: C.black, border: border(C.gold), align: ['center', 'center'] };
+  setRow(ws1, r, [
+    cell('SECTION',     hdrStyle),
+    cell('CRITÈRE',     hdrStyle),
+    cell('NOTE (/4)',   hdrStyle),
+    cell('NIVEAU',      hdrStyle),
+    cell('COMMENTAIRE', hdrStyle),
+  ]);
+  ws1['!rows'][r] = { hpt: 22 };
+  r++;
+
+  // SECTIONS
   SECTIONS.forEach(section => {
     const sd = d.sections[section.id];
     const rated = sd.criteria.filter(c => c.rating !== null);
     const avg = rated.length ? rated.reduce((s, c) => s + c.rating, 0) / rated.length : null;
     const pct = avg !== null ? Math.round((avg / 4) * 100) : null;
-    if (avg !== null) { globalTotal += avg; globalCount++; }
-    rows2.push([
-      section.title,
-      avg !== null ? parseFloat(avg.toFixed(2)) : 'N/A',
-      pct !== null ? pct + '%' : 'N/A',
-      `${rated.length} / ${sd.criteria.length}`
+    const colors = scoreColor(pct);
+
+    const sectionRowStart = r;
+
+    sd.criteria.forEach((c, idx) => {
+      const isFirst = idx === 0;
+      const ratingColors = c.rating !== null ? scoreColor(Math.round((c.rating / 4) * 100)) : { bg: C.white, fg: C.textLight };
+
+      setRow(ws1, r, [
+        isFirst
+          ? cell(section.title.toUpperCase(), {
+              font:  { sz: 11, bold: true, color: C.white },
+              fill:  colors.bg === C.greenLight ? C.green : colors.bg === C.amberLight ? C.amber : colors.bg === C.redLight ? C.red : C.midGray,
+              border: border(C.borderGray),
+              align: ['center', 'center'],
+            })
+          : cell('', { fill: colors.bg === C.greenLight ? C.green : colors.bg === C.amberLight ? C.amber : colors.bg === C.redLight ? C.red : C.midGray, border: border(C.borderGray) }),
+        cell(c.name, { font: { sz: 11 }, fill: idx % 2 === 0 ? C.white : C.lightBg, border: border(C.borderGray), align: ['left', 'center', true] }),
+        c.rating !== null
+          ? cell(c.rating, { font: { sz: 13, bold: true, color: ratingColors.fg }, fill: ratingColors.bg, border: border(C.borderGray), align: ['center', 'center'] })
+          : cell('—',      { font: { sz: 11, color: C.textLight }, fill: C.lightBg, border: border(C.borderGray), align: ['center', 'center'] }),
+        cell(c.rating !== null ? ratingEmoji(c.rating) : '', { font: { sz: 10, color: ratingColors.fg }, fill: ratingColors.bg, border: border(C.borderGray), align: ['center', 'center'] }),
+        cell(c.comment || '', { font: { sz: 10, color: C.midGray, italic: !!c.comment }, fill: idx % 2 === 0 ? C.white : C.lightBg, border: border(C.borderGray), align: ['left', 'center', true] }),
+      ]);
+      ws1['!rows'][r] = { hpt: 18 };
+      r++;
+    });
+
+    // Merge colonne Section
+    if (sd.criteria.length > 1) {
+      merges1.push({ s: { r: sectionRowStart, c: 0 }, e: { r: r - 1, c: 0 } });
+    }
+
+    // Note générale de section
+    if (sd.note) {
+      setRow(ws1, r, [
+        cell('', { fill: C.goldPale, border: {} }),
+        cell('Note : ' + sd.note, { font: { sz: 10, italic: true, color: C.midGray }, fill: C.goldPale, border: borderBottom(C.gold), align: ['left', 'center', true] }),
+        cell('', { fill: C.goldPale }),
+        cell('', { fill: C.goldPale }),
+        cell('', { fill: C.goldPale }),
+      ]);
+      merges1.push({ s: { r, c: 1 }, e: { r, c: 4 } });
+      ws1['!rows'][r] = { hpt: 16 };
+      r++;
+    }
+
+    // Score de section
+    setRow(ws1, r, [
+      cell('Score section', { font: { sz: 9, bold: true, color: C.textLight }, fill: C.lightBg, border: {}, align: ['right', 'center'] }),
+      cell(pct !== null ? pct + '%' : 'N/A', {
+        font: { sz: 13, bold: true, color: pct !== null ? colors.fg : C.textLight },
+        fill: pct !== null ? colors.bg : C.lightBg,
+        border: borderBottom(C.borderGray),
+        align: ['center', 'center']
+      }),
+      cell('', { fill: C.lightBg }),
+      cell('', { fill: C.lightBg }),
+      cell('', { fill: C.lightBg }),
     ]);
+    ws1['!rows'][r] = { hpt: 16 };
+    r++;
+    r++; // ligne vide
   });
 
-  rows2.push(['']);
-  const globalAvg = globalCount > 0 ? globalTotal / globalCount : null;
-  rows2.push([
-    'SCORE GLOBAL',
-    globalAvg !== null ? parseFloat(globalAvg.toFixed(2)) : 'N/A',
-    globalAvg !== null ? Math.round((globalAvg / 4) * 100) + '%' : 'N/A',
-    `${globalCount} section(s) notée(s)`
+  // ── BILAN ──────────────────────────────────────────────
+  r++;
+  const bilanHdrStyle = { font: { sz: 12, bold: true, color: C.white }, fill: C.midGray, border: {}, align: ['left', 'center'] };
+
+  setRow(ws1, r, [ cell('BILAN DE SESSION', bilanHdrStyle), null, null, null, null ]);
+  merges1.push({ s: { r, c: 0 }, e: { r, c: 4 } });
+  ws1['!rows'][r] = { hpt: 24 };
+  r++;
+
+  setRow(ws1, r, [
+    cell("✦ J'AI APPRÉCIÉ", { font: { sz: 10, bold: true, color: C.green }, fill: C.greenLight, border: border(C.green), align: ['left', 'top'] }),
+    cell(d.appreciated || '', { font: { sz: 11, color: C.midGray }, fill: C.white, border: border(C.borderGray), align: ['left', 'top', true] }),
+    null, null, null
   ]);
+  merges1.push({ s: { r, c: 1 }, e: { r, c: 4 } });
+  ws1['!rows'][r] = { hpt: 48 };
+  r++;
 
-  const ws2 = XLSX.utils.aoa_to_sheet(rows2);
-  ws2['!cols'] = [{ wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 22 }];
+  setRow(ws1, r, [
+    cell('◈ À AMÉLIORER', { font: { sz: 10, bold: true, color: C.red }, fill: C.redLight, border: border(C.red), align: ['left', 'top'] }),
+    cell(d.improve || '', { font: { sz: 11, color: C.midGray }, fill: C.white, border: border(C.borderGray), align: ['left', 'top', true] }),
+    null, null, null
+  ]);
+  merges1.push({ s: { r, c: 1 }, e: { r, c: 4 } });
+  ws1['!rows'][r] = { hpt: 48 };
+  r++;
 
-  XLSX.utils.book_append_sheet(wb, ws2, 'Scores');
+  r++;
+  setRow(ws1, r, [
+    cell('COMMENTAIRE FINAL', { font: { sz: 10, bold: true, color: C.white }, fill: C.midGray, border: border(C.midGray), align: ['left', 'top'] }),
+    cell(d.finalComment || '', { font: { sz: 11, color: C.midGray, italic: true }, fill: C.lightBg, border: border(C.borderGray), align: ['left', 'top', true] }),
+    null, null, null
+  ]);
+  merges1.push({ s: { r, c: 1 }, e: { r, c: 4 } });
+  ws1['!rows'][r] = { hpt: 60 };
 
-  // Nom fichier
+  ws1['!cols'] = [{ wch: 18 }, { wch: 30 }, { wch: 10 }, { wch: 18 }, { wch: 48 }];
+  ws1['!merges'] = merges1;
+  const maxRow = r + 1;
+  ws1['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: maxRow, c: 4 } });
+
+  XLSX.utils.book_append_sheet(wb, ws1, '📋 Fiche coaching');
+
+  // ════════════════════════════════════════════════════════
+  // FEUILLE 2 : SCORES
+  // ════════════════════════════════════════════════════════
+  const ws2 = {};
+  const merges2 = [];
+  let r2 = 0;
+
+  function setCell2(row, col, cellObj) { setCell(ws2, row, col, cellObj); }
+  function setRow2(row, cells) { setRow(ws2, row, cells); }
+
+  // Titre
+  setRow2(r2, [ cell('SCORES PAR SECTION', { font: { sz: 16, bold: true, color: C.goldLight }, fill: C.black, border: {} }), null, null, null ]);
+  merges2.push({ s: { r: r2, c: 0 }, e: { r: r2, c: 3 } });
+  ws2['!rows'] = [{ hpt: 32 }];
+  r2++;
+
+  setRow2(r2, [ cell(`${d.advisor || '—'}  ·  ${d.boutique || '—'}  ·  ${d.date || '—'}`, { font: { sz: 10, italic: true, color: C.goldLight }, fill: C.black, border: {} }), null, null, null ]);
+  merges2.push({ s: { r: r2, c: 0 }, e: { r: r2, c: 3 } });
+  ws2['!rows'][r2] = { hpt: 18 };
+  r2 += 2;
+
+  // En-têtes
+  const hdr2 = { font: { sz: 10, bold: true, color: C.white }, fill: C.black, border: border(C.gold), align: ['center', 'center'] };
+  setRow2(r2, [
+    cell('SECTION', hdr2),
+    cell('SCORE %', hdr2),
+    cell('MOYENNE /4', hdr2),
+    cell('CRITÈRES NOTÉS', hdr2),
+  ]);
+  ws2['!rows'][r2] = { hpt: 22 };
+  r2++;
+
+  let globalTotalPct = 0, globalSectionCount = 0;
+
+  SECTIONS.forEach((section, idx) => {
+    const sd = d.sections[section.id];
+    const rated = sd.criteria.filter(c => c.rating !== null);
+    const avg = rated.length ? rated.reduce((s, c) => s + c.rating, 0) / rated.length : null;
+    const pct = avg !== null ? Math.round((avg / 4) * 100) : null;
+    const colors = scoreColor(pct);
+    if (pct !== null) { globalTotalPct += pct; globalSectionCount++; }
+
+    const rowBg = idx % 2 === 0 ? C.white : C.lightBg;
+
+    setRow2(r2, [
+      cell(section.title, { font: { sz: 11, bold: true }, fill: rowBg, border: border(C.borderGray), align: ['left', 'center'] }),
+      pct !== null
+        ? cell(pct + '%', { font: { sz: 14, bold: true, color: colors.fg }, fill: colors.bg, border: border(C.borderGray), align: ['center', 'center'] })
+        : cell('N/A',     { font: { sz: 11, color: C.textLight }, fill: C.lightBg, border: border(C.borderGray), align: ['center', 'center'] }),
+      avg !== null
+        ? cell(parseFloat(avg.toFixed(2)), { font: { sz: 12, bold: true, color: colors.fg }, fill: colors.bg, border: border(C.borderGray), align: ['center', 'center'] })
+        : cell('N/A', { font: { sz: 11, color: C.textLight }, fill: C.lightBg, border: border(C.borderGray), align: ['center', 'center'] }),
+      cell(`${rated.length} / ${sd.criteria.length}`, { font: { sz: 11 }, fill: rowBg, border: border(C.borderGray), align: ['center', 'center'] }),
+    ]);
+    ws2['!rows'][r2] = { hpt: 24 };
+    r2++;
+  });
+
+  // Score global
+  r2++;
+  const globalPct = globalSectionCount > 0 ? Math.round(globalTotalPct / globalSectionCount) : null;
+  const globalColors = scoreColor(globalPct);
+
+  setRow2(r2, [
+    cell('SCORE GLOBAL', { font: { sz: 13, bold: true, color: C.white }, fill: globalColors.fg !== C.textLight ? globalColors.fg.replace('Light','') : C.midGray, border: border(C.borderGray), align: ['center', 'center'] }),
+    globalPct !== null
+      ? cell(globalPct + '%', { font: { sz: 20, bold: true, color: C.white }, fill: globalPct >= 70 ? C.green : globalPct >= 40 ? C.amber : C.red, border: border(C.borderGray), align: ['center', 'center'] })
+      : cell('N/A', { font: { sz: 14, color: C.white }, fill: C.midGray, border: border(C.borderGray), align: ['center', 'center'] }),
+    cell(globalPct !== null ? (globalPct >= 70 ? '✔ Bon niveau' : globalPct >= 40 ? '~ En progression' : '✗ À travailler') : '', {
+      font: { sz: 11, bold: true, color: C.white },
+      fill: globalPct !== null ? (globalPct >= 70 ? C.green : globalPct >= 40 ? C.amber : C.red) : C.midGray,
+      border: border(C.borderGray),
+      align: ['center', 'center']
+    }),
+    cell(`${globalSectionCount} section(s)`, { font: { sz: 11, color: C.white }, fill: C.midGray, border: border(C.borderGray), align: ['center', 'center'] }),
+  ]);
+  ws2['!rows'][r2] = { hpt: 36 };
+
+  ws2['!cols'] = [{ wch: 22 }, { wch: 12 }, { wch: 14 }, { wch: 18 }];
+  ws2['!merges'] = merges2;
+  ws2['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: r2 + 1, c: 3 } });
+
+  XLSX.utils.book_append_sheet(wb, ws2, '📊 Scores');
+
+  // Nom fichier + export
   const adv  = (d.advisor  || 'Vendeur').replace(/\s+/g, '_');
   const bout = (d.boutique || 'DG').replace(/\s+/g, '_');
   const dt   = d.date || new Date().toISOString().split('T')[0];
